@@ -1,0 +1,124 @@
+import Phaser from "phaser";
+import { config, gameSettings, windowHeight, windowWidth } from "./main";
+
+const baseSpeed = 3; // increase to slow it down, decrease to speed up
+
+export default class Scene2 extends Phaser.Scene {
+  constructor() {
+    super('playGame');
+  }
+  
+  create() {
+    this.add.text(20, 20, 'Playing game', { font: '25px Arial', fill: 'yellow' });
+
+    // this.background = this.add.image(0, 0, 'background');
+    // this.background.setOrigin(0, 0);
+
+    // this.background = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'background')
+    // this.background = this.add.tileSprite(0, 0, this.cameras.main.width / 2, this.cameras.main.height / 2, 'background');
+    this.background = this.add.tileSprite(this.cameras.main.width / 2, this.cameras.main.height / 2, config.width, config.height, 'background');
+    // let scaleX = this.cameras.main.width / this.background.width
+    // let scaleY = this.cameras.main.height / this.background.height
+    // let scale = Math.max(scaleX, scaleY)
+    // this.background.setScale(scale).setScrollFactor(0)
+
+    this.ship1 = this.add.sprite(config.width / 2 - 50, config.height / 2, 'ship');
+    this.ship2 = this.add.sprite(config.width / 2, config.height / 2, 'ship2');
+    this.ship3 = this.add.sprite(config.width / 2 + 50, config.height / 2, 'ship3');
+    this.ship1.setFlipY(true);
+    this.ship2.setFlipY(true);
+    this.ship3.setFlipY(true);
+
+
+    this.powerUps = this.physics.add.group();
+
+    var maxObjects = 4;
+
+    for (var i = 0; i <= maxObjects; i++) {
+      var powerUp = this.physics.add.sprite(16, 16, 'power-up');
+      this.powerUps.add(powerUp);
+      powerUp.setRandomPosition(0, 0, config.width, config.height);
+
+      if (Math.random() > 0.5) {
+        powerUp.play('red');
+      } else {
+        powerUp.play('gray');
+      }
+
+      powerUp.setVelocity(100, 100);
+      powerUp.setCollideWorldBounds(true);
+      powerUp.setBounce(1);
+    }
+
+    this.ship1.play('ship1_anim');
+    this.ship2.play('ship2_anim');
+    this.ship3.play('ship3_anim');
+
+    this.ship1.setInteractive();
+    this.ship2.setInteractive();
+    this.ship3.setInteractive();
+
+    this.input.on('gameobjectdown', this.destroyShip, this);
+
+    this.player = this.physics.add.sprite(config.width / 2 - 8, config.height - 64, 'player');
+    this.player.play('thrust');
+    this.player.setCollideWorldBounds(true);
+
+    this.cursorKeys = this.input.keyboard.createCursorKeys();
+
+    this.spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+  }
+
+  movePlayerManager() {
+    const { left, right, up, down } = this.cursorKeys;
+
+    if (left.isDown) {
+      this.player.setVelocityX(-gameSettings.playerSpeed);
+    } else if (right.isDown) {
+      this.player.setVelocityX(gameSettings.playerSpeed);
+    } else {
+      this.player.setVelocityX(0);
+    }
+
+    if (up.isDown) {
+      this.player.setVelocityY(-gameSettings.playerSpeed);
+    } else if (down.isDown) {
+      this.player.setVelocityY(gameSettings.playerSpeed);
+    } else {
+      this.player.setVelocityY(0);
+    }
+  }
+
+  moveShip(ship, speed) {
+    ship.y += speed;
+
+    if (ship.y > config.height + ship.height) {
+      this.resetShipPos(ship);
+    }
+  }
+
+  resetShipPos(ship) {
+    ship.y = 0;
+    const randomX = Phaser.Math.Between(0, config.width);
+    ship.x = randomX;
+  }
+
+  destroyShip(pointer, gameObject) {
+    gameObject.setTexture('explosion');
+    gameObject.play('explode');
+  }
+
+  update() {
+    this.moveShip(this.ship1, 1 / baseSpeed);
+    this.moveShip(this.ship2, 2 / baseSpeed);
+    this.moveShip(this.ship3, 3 / baseSpeed);
+
+    this.background.tilePositionY -= 0.5;
+
+    this.movePlayerManager();
+
+    if (Phaser.Input.Keyboard.JustDown(this.spacebar)) {
+      console.log("Fire!");
+    }
+  }
+}
